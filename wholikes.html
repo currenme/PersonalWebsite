@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Who Likes Your Statuses the Most?</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <style type="text/css">
+    	.fb_person{
+    		color:red;
+    	}
+      .item{
+        border-style:solid;
+        width:20%; 
+      }
+      #inviteFriends{
+        display:none;
+      }
+      body{
+        background-color: #FFE5BD;
+      }
+    </style>
+  </head>
+  <body>
+  	<div id = "friendContainer"></div>
+    <div id="fb-root"></div>
+
+    <a id= 'inviteFriends' href='#' onclick='FacebookInviteFriends();'>
+    Facebook Invite Friends Link
+    </a>
+
+    <script>
+      // Load the SDK Asynchronously
+      (function(d){
+         var js, id = 'facebook-jssdk', ref = d.getElementsByTagName('script')[0];
+         if (d.getElementById(id)) {return;}
+         js = d.createElement('script'); js.id = id; js.async = true;
+         js.src = "//connect.facebook.net/en_US/all.js";
+         ref.parentNode.insertBefore(js, ref);
+       }(document));
+      // Init the SDK upon load
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId      : '406711482728976', // App ID
+          // channelUrl : '//'+window.location.hostname+'/channel', // Path to your Channel File
+          // status     : true, // check login status
+          // cookie     : true, // enable cookies to allow the server to access the session
+          // xfbml      : true  // parse XFBML
+        });
+        // listen for and handle auth.statusChange events
+        FB.Event.subscribe('auth.statusChange', function(response) {
+          //The below if statement will be true if the user is authorized and logged in {AJAY}
+          if (response.authResponse) {
+            // user has auth'd your app and is logged into Facebook
+            FB.api('/me', function(me){
+              if (me.name) {
+                //me.name is probably the username? {AJAY}
+                document.getElementById('auth-displayname').innerHTML = me.name;
+              }
+            }) 
+            FB.api('/me?fields=statuses.limit(1000).fields(likes)', function(response) {
+              // console.log(response);
+              printLikes(response.statuses.data);
+			       });
+            FB.api('/me/friends?fields=name,picture', function(response) {
+              //console.log(response);
+              printNames(response.data);
+             });
+            //Don't display the html with tag "auth-loggedout", and display "auth-loggedin" instead {AJAY}
+            document.getElementById('auth-loggedout').style.display = 'none';
+            document.getElementById('auth-loggedin').style.display = 'block';
+            //Display the print button {AJAY}
+            document.getElementById('printButton').style.display = 'inline';
+            //Display the invite friends button {AJAY}
+            document.getElementById('inviteFriends').style.display = 'block';
+          } else {
+            // user has not auth'd your app, or is not logged into Facebook
+            document.getElementById('auth-loggedout').style.display = 'block';
+            document.getElementById('auth-loggedin').style.display = 'none';
+            document.getElementById('inviteFriends').style.display = 'none';
+          }
+        });
+        // respond to clicks on the login and logout links
+        document.getElementById('auth-loginlink').addEventListener('click', function(){
+          FB.login(function(response) {}, {scope: 'user_status'});
+        });
+        document.getElementById('auth-logoutlink').addEventListener('click', function(){
+          $("#friendNames").remove();
+          FB.logout();
+        }); 
+      } 
+    </script>
+
+      <div id="auth-status">
+        <div id="auth-loggedout">
+          <a href="#" id="auth-loginlink">Login</a>
+        </div>
+
+        <div id="auth-loggedin" style="display:none">
+          Hi, <span id="auth-displayname"></span>  
+          (<a href="#" id="auth-logoutlink">logout</a>) </br>
+          <div id = "printButton"><button onclick = "printFunction()">Click for list</button></div>
+        </div>
+      </div>
+
+  </body>
+    <script type="text/javascript">
+      //Using globaly variables = bad... should probably introduce some abstraction and hierarchal structure {AJAY}
+      // full list of names of people who have liked your statuses, names are repeated {AJAY}
+      var likes = [];
+      //full list of friends' names (independent of likes), formed in printNames {AJAY}
+      var nameList = [];
+      //Final list with names, likes, and picture urls {AJAY}
+      var ordered_friends = [];
+      //a list of the number of likes for each person on your statuses, in the same order as nameList {AJAY}
+      var counted_likes = [];
+      //Invite friends function {AJAY}
+      function FacebookInviteFriends()
+      {
+      FB.ui({
+      method: 'apprequests',
+      message: 'See which friends have liked your statuses the most!'
+      });
+      }
+    	function printLikes(friendsList) {
+        //just to reset the list...
+        likes.length = 0;
+        for (var i=0; i<friendsList.length;i++){
+          try{
+            for (var j=0; j<friendsList[i].likes.data.length;j++){
+              likes.push(friendsList[i].likes.data[j].name);
+            }
+          }
+          catch(err){
+            // console.log(err);
+            console.log("This status has no likes");
+          }
+        }
+    	}
+      function printNames(friendsName) {
+        nameList.length = 0;
+        for (var k=0; k<friendsName.length; k++){
+        nameList.push(friendsName[k]);
+        }
+      }
+      function lastlist(){
+        ordered_friends.length = 0;
+        compare();
+        while (Math.max.apply(Math,counted_likes)>=0){
+          for (var i =0; i<nameList.length; i++){
+            if (counted_likes[i] == Math.max.apply(Math,counted_likes) && counted_likes[i] >= 0){
+              ordered_friends.push(nameList[i].name+"%"+counted_likes[i]+"*"+nameList[i].picture.data.url+"@"+nameList[i].id);
+              counted_likes[i] = -1;
+            }
+          }
+        }
+      }
+      function compare(){
+        counted_likes.length = 0;
+        for(var i = 0; i<nameList.length; i++){
+          counted_likes[i] = 0;
+          for(var j = 0; j<likes.length;j++){
+            if(nameList[i].name == likes[j]){
+              counted_likes[i]++;
+            }
+          }
+        }
+      }
+      function printFunction() {
+            var how_many = prompt("How many people would you like to display?",10)
+            lastlist();
+            // for(var i=0;i<ordered_friends.length;i++){
+            var friendNamesDiv = $("<div id = 'friendNames'></div>")
+            $("#friendContainer").append(friendNamesDiv);
+            for(var i=0;i<how_many;i++){
+              var person = ordered_friends[i];
+              var personEl = createFacebookPersonEl(person);
+              $("#friendNames").append(personEl);
+            document.getElementById('printButton').style.display = 'none';
+            }
+          }
+        function createFacebookPersonEl(person){
+            person = String(person);
+            var name = person.substring(0,person.indexOf("%"));
+            var number_of_likes = person.substring(person.indexOf("%")+1,person.indexOf("*"));
+            var picture = person.substring(person.indexOf("*")+1,person.indexOf("@"));
+            var id = person.substring(person.indexOf("@")+1);
+            var personEl = $("<div class ='item'><a class='fb_person' href='http://www.facebook.com/"+id+"' target = '_blank'>"+name+" "+number_of_likes+"</a> </br> <img src ="+picture+"> </br> </div> </br>");
+            return personEl;
+        }
+    </script>
+</html>

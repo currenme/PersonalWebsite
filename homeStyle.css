@@ -1,0 +1,28 @@
+ body 
+ {
+    background-color: #86B8DF;
+    text-align: center;
+    font-size: 15px; 
+ }
+
+ #top_button
+ {
+ 	padding-top: 70px; 
+ }
+
+ #main
+ {
+ 	padding-top: 20px; 
+ 	padding-left: 50px;
+    padding-right: 50px;
+ }
+
+ .container
+ {
+ 	padding-top: 40px; 
+ }
+
+ #homeIm
+ {
+ 	padding-top: 50px; 
+ }
